@@ -1,11 +1,15 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.24)
 project(ultimate)
 
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Build type" FORCE)
+  set(CMAKE_BUILD_TYPE Debug)
 endif()
 
 include(FetchContent)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(JSONC REQUIRED json-c)
+include_directories(${JSONC_INCLUDE_DIRS})
+link_directories(${JSONC_LIBRARY_DIRS})
 
 set(CMAKE_C_STANDARD 99)
 
@@ -25,13 +29,15 @@ FetchContent_MakeAvailable(raylib)
 include_directories(include)         # Your config.h
 include_directories(vendor/raylib/src)
 include_directories(vendor/raylib/src/external)
-
 add_executable(${PROJECT_NAME})
-target_link_libraries(${PROJECT_NAME} raylib)
-target_sources(ultimate PRIVATE ${SOURCE_FILES})
 
 add_subdirectory(src)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/resources)
+add_subdirectory(resources)
 
+target_link_libraries(${PROJECT_NAME} raylib
+  ${JSONC_LIBRARIES}
+)
 # macOS/Linux extra libs (raylib needs these)
 if(UNIX AND NOT APPLE)
   target_link_libraries(${PROJECT_NAME} m dl pthread GL X11 Xrandr Xinerama Xcursor Xi)

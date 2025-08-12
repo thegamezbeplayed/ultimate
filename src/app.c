@@ -1,11 +1,12 @@
 #include "raylib.h"
+#include "game_sprites.h"
 #include "screens.h"    // NOTE: Declares global (extern) variables and screens functions
 
 #if defined(PLATFORM_WEB)
     #include <emscripten/emscripten.h>
 #endif
-static const int screenWidth = 1600;
-static const int screenHeight = 900;
+static const int screenWidth = 1920;
+static const int screenHeight = 1080;
 
 static void UpdateDrawFrame(void);          // Update and draw one frame
 
@@ -15,6 +16,7 @@ int main(void)
     //---------------------------------------------------------
     InitWindow(screenWidth, screenHeight, "raylib game template");
 
+    LoadrtpAtlasSprite(&spritedata);
     InitAudioDevice();      // Initialize audio device
 #if defined(PLATFORM_WEB)
     emscripten_set_main_loop(UpdateDrawFrame, 60, 1);
@@ -45,6 +47,7 @@ static void UpdateDrawFrame(void)
 {
   UpdateGameplayScreen();
   BeginDrawing();
+  ClearBackground(RAYWHITE);
 
   DrawGameplayScreen();
   DrawFPS(10, 10);
