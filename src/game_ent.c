@@ -42,7 +42,34 @@ ent_t* InitEntStatic( TileInstance data){
   e->team = TEAM_ENVIROMENT;
   return e;
 }
+void EntKill(ent_t* e){
+  SetState(e, STATE_DIE,NULL);
+}
 
+void EntDestroy(ent_t* e){
+  SetState(e, STATE_END,NULL);//when animations are used do this after the death animation
+  if(e->sprite!=NULL){
+    e->sprite->owner = NULL;
+    e->sprite->is_visible = false;
+    e->sprite = NULL;
+  }
+
+  if(e->body!=NULL){
+    e->body->owner = NULL;
+    e->body = NULL;
+  }
+
+  for(int i = 0; i < e->num_attacks; i++){
+    e->attacks[i].owner = NULL;
+    if(e->attacks[i].hurtbox)
+      e->attacks[i].hurtbox->owner = NULL;
+  } 
+
+}
+
+void EntFree(ent_t* e){
+
+}
 stat_t InitStatEmpty(){
   return (stat_t){
     .attribute = STAT_BLANK,
@@ -86,7 +113,7 @@ controller_t* InitController(ObjectInstance data){
   controller_t* ctrl = malloc(sizeof(controller_t));
   *ctrl = (controller_t){0};
 
-  ctrl->aggro = 200;
+  ctrl->aggro = 160;
   ctrl->range = 80;
   return ctrl;
 }
@@ -131,12 +158,13 @@ bool SetState(ent_t *e, EntityState s,StateChangeCallback callback){
 }
 
 bool CanChangeState(EntityState old, EntityState s){
-  if(old == s)
+  if(old == s || old > STATE_END)
     return false;
   
   switch (COMBO_KEY(old,s)){
     case COMBO_KEY(STATE_NONE,!STATE_SPAWN):
     case COMBO_KEY(!STATE_NONE,STATE_SPAWN):
+    case COMBO_KEY(!STATE_DIE,STATE_END):
       return false;
       break;
     case COMBO_KEY(STATE_SPAWN,STATE_ATTACK):
@@ -163,5 +191,9 @@ void OnStateChange(ent_t *e, EntityState old, EntityState s){
       break;
   }
 
+}
+
+bool CheckEntOutOfBounds(ent_t* e, Rectangle bounds){
+  return (CheckCollisionPointRec(e->pos, bounds));
 }
 

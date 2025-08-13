@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <json-c/json.h>
+#include "game_common.h"
 
 #define MAX_BEHAVIOR_TREE 8
 #define MAX_NAME_LEN 64
@@ -59,7 +60,10 @@ typedef BehaviorStatus (*BehaviorTreeTickFunc)(behavior_tree_node_t* self, void*
 
 typedef struct behavior_params_s{
   struct ent_s*  owner;
+  EntityState    state;
 }behavior_params_t;
+
+behavior_params_t* BuildBehaviorParams(void* params);
 
 typedef struct behavior_tree_node_s{
   BehaviorTreeType      bt_type;
@@ -90,6 +94,7 @@ typedef struct {
     const char *name;  // "CanSeeTarget", "MoveToTarget", ...
     behavior_tree_node_t* (*factory)(behavior_params_t *params); // params is leaf-specific (can be NULL)
 } BTLeafRegistryEntry;
+
 behavior_tree_node_t* InitBehaviorTree( const char* name);
 void FreeBehaviorTree(behavior_tree_node_t* node);
 BehaviorStatus BehaviorTickSequence(behavior_tree_node_t *self, void *context);
@@ -100,6 +105,7 @@ behavior_tree_node_t* BehaviorCreateSelector(behavior_tree_node_t **children, in
 BehaviorStatus BehaviorTickSequence(behavior_tree_node_t *self, void *context);
 BehaviorStatus BehaviorTickSelector(behavior_tree_node_t *self, void *context);
 
+BehaviorStatus BehaviorChangeState(behavior_params_t *params);
 BehaviorStatus BehaviorAcquireDestination(behavior_params_t *params);
 BehaviorStatus BehaviorAcquireTarget(behavior_params_t *params);
 BehaviorStatus BehaviorCanSeeTarget(behavior_params_t *params);
@@ -107,6 +113,7 @@ BehaviorStatus BehaviorMoveToTarget(behavior_params_t *params);
 BehaviorStatus BehaviorCanAttackTarget(behavior_params_t *params);
 BehaviorStatus BehaviorAttackTarget(behavior_params_t *params);
 
+static inline behavior_tree_node_t* LeafChangeState(behavior_params_t *params)  { return BehaviorCreateLeaf(BehaviorChangeState,params); }
 static inline behavior_tree_node_t* LeafAcquireTarget(behavior_params_t *params)  { return BehaviorCreateLeaf(BehaviorAcquireTarget,params); }
 static inline behavior_tree_node_t* LeafAcquireDestination(behavior_params_t *params)  { return BehaviorCreateLeaf(BehaviorAcquireDestination,params); }
 static inline behavior_tree_node_t* LeafCanSeeTarget(behavior_params_t *params)  { return BehaviorCreateLeaf(BehaviorCanSeeTarget,params); }
@@ -116,6 +123,7 @@ static inline behavior_tree_node_t* LeafAttackTarget(behavior_params_t *params) 
 
 
 static BTLeafRegistryEntry g_bt_leaves[] = {
+    { "ChangeState",  LeafChangeState  },
     { "AcquireTarget",  LeafAcquireTarget  },
     { "AcquireDestination",  LeafAcquireDestination  },
     { "CanSeeTarget",  LeafCanSeeTarget  },

@@ -21,11 +21,19 @@ JNode* ParseJNode(struct json_object* root){
 
   JNode *node = malloc(sizeof(JNode));
 
+
   if(name){
     node->name = (char*)malloc(MAX_NAME_LEN*sizeof(char));
     node->name = strdup(name);
   }
 
+  json_object *params_obj;
+  if(json_object_object_get_ex(root, "params", &params_obj)&&
+      params_obj && json_object_get_type(params_obj)== json_type_object){
+  
+    node->params = json_object_get(params_obj);
+  }
+  
   if (strcmp(type, "Leaf") == 0) {
     node->type = JNODE_LEAF;
     node->child_count = 0;  

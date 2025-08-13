@@ -16,6 +16,13 @@ static bool EntNotOnTeam(ent_t* e,ent_t* other){
     return true;
 }
 
+static bool EntNotOnTeamAlive(ent_t* e,ent_t* other){
+  if(e->team == other->team || e->team == TEAM_ENVIROMENT || e->state >= STATE_DIE)
+    return false;
+  else
+    return true;
+}
+
 typedef enum{
   EVENT_GAME_PROCESS,
   EVENT_INTERACTION,
@@ -82,6 +89,7 @@ typedef struct{
 }world_data_t;
 
 typedef struct world_s{
+  Rectangle     room_bounds;
   ent_t*        ents[MAX_ENTS];
   unsigned int  num_ent;
   rigid_body_t* cols[MAX_ENTS];
@@ -99,5 +107,6 @@ void WorldPreUpdate();
 void WorldFixedUpdate();
 void InitWorld(world_data_t data);
 void WorldRender();
+Rectangle WorldRoomBounds();
 #endif
 

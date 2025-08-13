@@ -21,6 +21,10 @@ int WorldGetEnts(ent_t** results,EntFilterFn fn, void* params){
   return num_results;
 }
 
+Rectangle WorldRoomBounds(){
+  return world.room_bounds;
+}
+
 int AddEnt(ent_t *e) {
   if (world.num_ent < MAX_ENTS) {
     int index = world.num_ent;
@@ -101,12 +105,25 @@ void WorldPreUpdate(){
 
 void WorldFixedUpdate(){
   for(int i = 0; i < world.num_ent; i++){
-    PhysicsStep(world.ents[i]->body);
-    EntSync(world.ents[i]);
+    switch(world.ents[i]->state){
+      case STATE_END:
+        break;
+      case STATE_DIE:
+        EntDestroy(world.ents[i]);
+        break;
+      default:
+        PhysicsStep(world.ents[i]->body);
+        EntSync(world.ents[i]);
+        if(!CheckEntOutOfBounds(world.ents[i], WorldRoomBounds()))
+          EntKill(world.ents[i]);
+        break;
+    }
   }
 }
 
 void InitWorld(world_data_t data){
+  world = (world_t){0};
+  world.room_bounds = RecFromCoords(0,0,ROOM_WIDTH,ROOM_HEIGHT);
   for (int i = 0; i < data.num_ents; i++)
     RegisterEnt(InitEnt(data.ents[i]));
   
@@ -115,6 +132,8 @@ void InitWorld(world_data_t data){
 }
 
 void WorldRender(){
+  DrawRectangleRec(world.room_bounds, PURPLE);
+  
   for(int i = 0; i < world.num_spr;i++){
     DrawSprite(world.sprs[i]);
     if(!DEBUG)

@@ -1,6 +1,7 @@
 #ifndef __GAME_TYPES__
 #define __GAME_TYPES__
 
+#include "game_common.h"
 #include "game_sprites.h"
 #include "game_utils.h"
 #include "room_data.h"
@@ -18,43 +19,6 @@
 
 typedef struct ent_s ent_t;
 typedef struct rigid_body_s rigid_body_t;
-
-typedef enum{
-  TEAM_PLAYER,
-  TEAM_ENEMIES,
-  TEAM_ENVIROMENT,
-  TEAM_NONE
-}TeamName;
-
-typedef enum {
-  SHAPE_CIRCLE,
-  SHAPE_RECTANGLE,
-  SHAPE_TRIANGLE,
-  SHAPE_NONE
-} ShapeType;
-
-typedef enum{
-  STATE_NONE,//if ent_t is properly initalized to {0} this is already set
-  STATE_SPAWN,//Should only be set after NONE
-  STATE_IDLE, //should be able to move freely between these ==>
-  STATE_RUNNING,
-  STATE_AIRBORNE,
-  STATE_ATTACK,
-  STATE_AGGRO,
-  STATE_WANDER,
-  STATE_DIE,//<===== In MOST cases. Should not be able to go down from DIE
-  STATE_END//sentinel entity state should never be this or greater
-}EntityState;
-
-//===STATS===>
-typedef enum{
-  STAT_HEALTH,
-  STAT_DAMAGE,
-  STAT_SPEED,
-  STAT_ACCEL,
-  STAT_BLANK//sentinel
-}StatType;
-
 typedef struct stat_s stat_t;
 
 typedef bool (*StatCallback)(ent_t* owner);
@@ -197,9 +161,16 @@ typedef struct ent_s{
 
 ent_t* InitEntStatic(TileInstance data);
 ent_t* InitEnt(ObjectInstance data);
-void   EntSync(ent_t* e);
+void EntSync(ent_t* e);
+void EntKill(ent_t* e);
+void EntDestroy(ent_t* e);
+void EntFree(ent_t* e);
+static inline bool EntTargetable(ent_t* e){
+  return (e!=NULL && e->state <= STATE_DIE);
+}
 void EntControlStep(ent_t *e);
 typedef void (*StateChangeCallback)(ent_t *e, EntityState old, EntityState s);
+bool CheckEntOutOfBounds(ent_t* e, Rectangle bounds);
 bool SetState(ent_t *e, EntityState s,StateChangeCallback callback);
 void OnStateChange(ent_t *e, EntityState old, EntityState s);
 bool CanChangeState(EntityState old, EntityState s);

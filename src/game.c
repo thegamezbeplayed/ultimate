@@ -87,11 +87,13 @@ void FixedUpdate(void){
   if(game_process.state == GAME_LOADING)
     return;
 
-  Vector2 input = CaptureInput();
+  if(player && player->state < STATE_DIE){
+    Vector2 input = CaptureInput();
 
-  if(Vector2Length(input)>0){
-    input = Vector2Scale(input,8);//TODO this is placeholder for ent speed
-    PhysicsApplyForce(player->body,ForceFromVector2(FORCE_STEERING,input));
+    if(Vector2Length(input)>0){
+      input = Vector2Scale(input,8);//TODO this is placeholder for ent speed
+      PhysicsApplyForce(player->body,ForceFromVector2(FORCE_STEERING,input));
+    }
   }
   WorldFixedUpdate();
 }
@@ -132,8 +134,8 @@ void DrawGameplayScreen(void)
   BeginMode2D(camera);
 
   // TODO: Draw GAMEPLAY screen here!
-  DrawRectangle(0, 0, 4 * GetScreenWidth(), 4 * GetScreenHeight(), PURPLE);
   Draw2DGrid(GRID_SIZE, GetScreenWidth()*4, GetScreenHeight()*4);
+
   WorldRender();
 
   EndMode2D();

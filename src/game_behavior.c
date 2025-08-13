@@ -9,7 +9,7 @@ behavior_tree_node_t* BuildFromJNode(const JNode *jn) {
             if (strcmp(g_bt_leaves[i].name, jn->name) == 0) {
                 // if your factories need params, change factory signature:
                 // behavior_tree_node_t* (*factory)(behavior_params_t *params)
-              behavior_params_t *params; 
+              behavior_params_t *params = BuildBehaviorParams(jn->params); 
 
               return g_bt_leaves[i].factory(params);
             }
@@ -27,6 +27,11 @@ behavior_tree_node_t* BuildFromJNode(const JNode *jn) {
       return BehaviorCreateSequence(kids, jn->child_count);
     else
       return BehaviorCreateSelector(kids, jn->child_count);
+}
+
+behavior_params_t* BuildBehaviorParams(void* params){
+
+
 }
 
 behavior_tree_node_t* InitBehaviorTree( const char* name){
@@ -62,6 +67,14 @@ void BehaviorAddTree(const char *name, behavior_tree_node_t *root){
   tree_cache_count++;
 }
 
+BehaviorStatus BehaviorChangeState(behavior_params_t *params){
+  struct ent_s* e = params->owner;
+  if(!e || !e->control)
+    return BEHAVIOR_FAILURE;
+
+
+}
+
 BehaviorStatus BehaviorAcquireDestination(behavior_params_t *params){
    struct ent_s* e = params->owner;
   if(!e)
@@ -73,18 +86,21 @@ BehaviorStatus BehaviorAcquireTarget(behavior_params_t *params){
   if(!e || !e->control)
     return BEHAVIOR_FAILURE;
 
-  if(e->control->target)
+  if(EntTargetable(e->control->target))
     return BEHAVIOR_SUCCESS;
 
+  e->control->target = NULL;
+
   struct ent_s* others[MAX_ENTS];
-  int num_others =  WorldGetEnts(others,EntNotOnTeam, e);
+  int num_others =  WorldGetEnts(others,EntNotOnTeamAlive, e);
   for (int i = 0; i < num_others; i++){
     if(CheckCanSeeTarget(e->body,others[i]->body, e->control->aggro)){
       e->control->target = others[i];
-      TraceLog(LOG_INFO,"New target acquired");
       return BEHAVIOR_SUCCESS;
     }
   }
+
+  return BEHAVIOR_FAILURE;
 }
 
 BehaviorStatus BehaviorCanSeeTarget(behavior_params_t *params){
@@ -99,11 +115,13 @@ BehaviorStatus BehaviorMoveToTarget(behavior_params_t *params){
   if(!e || !e->control)
     return BEHAVIOR_FAILURE;
 
+  if(!EntTargetable(e->control->target))
+    return BEHAVIOR_FAILURE;
+
   if(PhysicsSimpleDistCheck(e->body,e->control->target->body) < e->control->range)
     return BEHAVIOR_SUCCESS;
 
   PhysicsAccelDir(e->body, FORCE_STEERING,Vector2Normalize(Vector2Subtract(e->control->target->pos,e->pos)));
-  TraceLog(LOG_INFO,"Move %s towards %s at <%0.2f,%0.2f>",e->name,e->control->target->name,e->body->velocity.x,e->body->velocity.y);
   return BEHAVIOR_RUNNING;
 }
 
