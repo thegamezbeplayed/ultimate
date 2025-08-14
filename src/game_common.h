@@ -27,6 +27,22 @@ typedef enum{
   STATE_END//sentinel entity state should never be this or greater
 }EntityState;
 
+typedef struct {
+  const char* name;
+  EntityState   state;
+}EntityStateAlias;
+
+static EntityStateAlias ent_state_alias[STATE_END] = {
+  {"STATE_IDLE",    STATE_IDLE},
+  {"STATE_WANDER",  STATE_WANDER},
+  {"STATE_SPAWN",   STATE_SPAWN},
+  {"STATE_ATTACK",  STATE_ATTACK},
+  {"STATE_AGGRO",   STATE_AGGRO},
+  {"STATE_DIE",     STATE_DIE},
+  {"STATE_END",     STATE_END} 
+};
+
+EntityState EntityStateLookup(const char* name);
 //===STATS===>
 typedef enum{
   STAT_HEALTH,

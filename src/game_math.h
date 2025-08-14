@@ -18,6 +18,14 @@ static inline Vector2 Vector2FromXY(float x, float y){
 
   return result;
 }
+static inline Rectangle RectangleCrop(Rectangle rec, float ex_wid,float ex_hei){
+  return (Rectangle){
+    .x = rec.x + ex_wid,
+    .y = rec.y + ex_hei,
+    .width = rec.width - ex_wid,
+    .height = rec.height - ex_hei
+  };
+}
 
 static inline Rectangle RecFromCoords(int x, int y, int width, int height){
 

@@ -330,7 +330,7 @@ bool CheckCollision(rigid_body_t *a, rigid_body_t *b, int len) {
       Rectangle recA = RecFromCoords(a->collision_bounds.pos.x,a->collision_bounds.pos.y,a->collision_bounds.width,a->collision_bounds.height);
       
       Rectangle recB = RecFromCoords(b->collision_bounds.pos.x,b->collision_bounds.pos.y,b->collision_bounds.width,b->collision_bounds.height);
-      //TODO
+      
       col = CheckCollisionRecs(recA,recB);
       break;
   }
@@ -354,18 +354,6 @@ bool RigidBodyCollide(rigid_body_t* a, rigid_body_t* b, ent_t *e){
 
 void CollisionBoundsAvoid(rigid_body_t* a, rigid_body_t* b, ForceType t){
   a->collisions[a->num_collisions_detected++] = b->collision_bounds;
-}
-//POSSIBLE NOT NEEDED TODO
-void ReactionAvoidForce(rigid_body_t* a, rigid_body_t* b, ForceType t){
-
-  //float projectionAlignment = Vector2DotProduct(a->velocity,Vector2Subtract(b->position,a->position));
-
-  Vector2 avoidPoint = Vector2Lerp(Vector2Add(a->position,a->velocity),a->position,0.75);
-
-  Vector2 dist = Vector2Subtract(avoidPoint,a->position);
-  Vector2 avoid = Vector2ClampValue(Vector2Negate(dist),1,Vector2Length(a->velocity));
-  force_t avoidF = ForceFromVector2(t,avoid);
-  PhysicsApplyForce(a,avoidF);
 }
 
 void ReactionBumpForce(rigid_body_t* a, rigid_body_t* b, ForceType t){

@@ -20,7 +20,8 @@ ent_t* InitEnt(ObjectInstance data){
   
   if(e->team == TEAM_ENEMIES){
     e->control = InitController(data);
-    e->control->bt[STATE_IDLE] = InitBehaviorTree("Test");
+    e->control->bt[STATE_IDLE] = InitBehaviorTree("Seek");
+    e->control->bt[STATE_WANDER] = InitBehaviorTree("Wander");
   }
   SetState(e,STATE_SPAWN,OnStateChange);
   return e;
@@ -138,8 +139,8 @@ void EntControlStep(ent_t *e){
     return;
 
   behavior_tree_node_t* current = e->control->bt[e->state];
-  behavior_params_t param = {.owner = e};
-  current->tick(current,&param);
+  
+  current->tick(current, e);
 }
 
 bool SetState(ent_t *e, EntityState s,StateChangeCallback callback){

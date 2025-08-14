@@ -1,6 +1,30 @@
 #include <raylib.h>
 #include "game_utils.h"
 #include "game_process.h"
+#include "game_tools.h"
+
+static bt_register_entry_t BT_Registry[MAX_BEHAVIOR_TREE];
+static int registry_count = 0;
+
+void BT_RegisterTree(const char *name, JNode *root) {
+    if (registry_count < MAX_BEHAVIOR_TREE) {
+        BT_Registry[registry_count].name = strdup(name);
+        BT_Registry[registry_count].root = root;
+        registry_count++;
+    }
+}
+
+behavior_tree_node_t *BehaviorGetTree(const char *name) {
+  for (int i = 0; i < registry_count; i++) {
+    if (strcmp(BT_Registry[i].name, name) == 0){
+      if(!BT_Registry[i].tree)
+        BT_Registry[i].tree = BuildFromJNode(BT_Registry[i].root);
+
+      return BT_Registry[i].tree;
+    }
+  }
+  return NULL;
+}
 
 behavior_tree_node_t* BuildFromJNode(const JNode *jn) {
     if (jn->type == JNODE_LEAF) {
@@ -9,7 +33,7 @@ behavior_tree_node_t* BuildFromJNode(const JNode *jn) {
             if (strcmp(g_bt_leaves[i].name, jn->name) == 0) {
                 // if your factories need params, change factory signature:
                 // behavior_tree_node_t* (*factory)(behavior_params_t *params)
-              behavior_params_t *params = BuildBehaviorParams(jn->params); 
+                behavior_params_t *params = BuildBehaviorParams(jn->params); 
 
               return g_bt_leaves[i].factory(params);
             }
@@ -29,9 +53,21 @@ behavior_tree_node_t* BuildFromJNode(const JNode *jn) {
       return BehaviorCreateSelector(kids, jn->child_count);
 }
 
-behavior_params_t* BuildBehaviorParams(void* params){
+behavior_params_t* BuildBehaviorParams(json_object* params){
+  behavior_params_t* result = malloc(sizeof(behavior_params_t));
+  *result = (behavior_params_t){0};
 
+  if(params == NULL)
+    return result; 
 
+  json_object_object_foreach(params, key, val){
+    const char* str = json_object_get_string(val);
+    if(strcmp(key,"state") == 0)
+      result->state = EntityStateLookup(str);
+
+  }
+
+  return result;
 }
 
 behavior_tree_node_t* InitBehaviorTree( const char* name){
@@ -40,31 +76,8 @@ behavior_tree_node_t* InitBehaviorTree( const char* name){
   if(node != NULL)
     return node;
 
-
-  node = BuildFromJNode(raw_game_data);
-  if(node == NULL){
-    TraceLog(LOG_WARNING,"<=====Behavior Tree %s not found=====>",name);
-    return NULL;
-  }
-
-  BehaviorAddTree(name,node);
-
-  return node;
-}
-
-behavior_tree_node_t* BehaviorGetTree(const char *name){
-  for (int i = 0; i < tree_cache_count; i++) {
-    if (strcmp(tree_cache[i].name, name) == 0) {
-      return tree_cache[i].root;
-    }
-  }
+  TraceLog(LOG_WARNING,"<=====Behavior Tree %s not found=====>",name);
   return NULL;
-}
-
-void BehaviorAddTree(const char *name, behavior_tree_node_t *root){
-  strncpy(tree_cache[tree_cache_count].name, name, sizeof(tree_cache[tree_cache_count].name)-1);
-  tree_cache[tree_cache_count].root = root;
-  tree_cache_count++;
 }
 
 BehaviorStatus BehaviorChangeState(behavior_params_t *params){
@@ -72,13 +85,46 @@ BehaviorStatus BehaviorChangeState(behavior_params_t *params){
   if(!e || !e->control)
     return BEHAVIOR_FAILURE;
 
+  if(!params->state)
+    return BEHAVIOR_FAILURE;
+
+  SetState(e, params->state,NULL);
+  TraceLog(LOG_INFO,"Change e %s state to %d",e->name, params->state);
+  return BEHAVIOR_SUCCESS;
 
 }
 
 BehaviorStatus BehaviorAcquireDestination(behavior_params_t *params){
-   struct ent_s* e = params->owner;
-  if(!e)
-    return BEHAVIOR_FAILURE; 
+  struct ent_s* e = params->owner;
+  if(!e || !e->control)
+    return BEHAVIOR_FAILURE;
+
+  if(!e->control->has_arrived)
+    return BEHAVIOR_SUCCESS;
+
+  e->control->destination = GetNearbyDestination(e->pos, 2*e->control->aggro,WorldRoomBounds(),0.75,e->body->collision_bounds.radius);
+ 
+ TraceLog(LOG_INFO,"Ent %s move to <%0.2f,%0.2f>",e->name,e->control->destination.x,e->control->destination.y); 
+  return BEHAVIOR_SUCCESS;
+}
+
+BehaviorStatus BehaviorMoveToDestination(behavior_params_t *params){
+  struct ent_s* e = params->owner;
+  if(!e || !e->control)
+    return BEHAVIOR_FAILURE;
+
+  if(e->control->has_arrived){
+    e->control->has_arrived = false;
+    return BEHAVIOR_SUCCESS;
+  }
+  if(Vector2Distance(e->pos,e->control->destination) <  e->control->range){
+    e->control->has_arrived = true;
+    return BEHAVIOR_SUCCESS;
+  }
+
+  PhysicsAccelDir(e->body, FORCE_STEERING,Vector2Normalize(Vector2Subtract(e->control->destination,e->pos)));
+  return BEHAVIOR_RUNNING;
+
 }
 
 BehaviorStatus BehaviorAcquireTarget(behavior_params_t *params){
@@ -142,7 +188,8 @@ BehaviorStatus BehaviorAttackTarget(behavior_params_t *params){
 BehaviorStatus BehaviorTickLeaf(behavior_tree_node_t *self, void *context) {
     behavior_tree_leaf_t *leaf = (behavior_tree_leaf_t *)self->data;
     if (!leaf || !leaf->action) return BEHAVIOR_FAILURE;
-    return leaf->action(context);
+    leaf->params->owner = context;
+    return leaf->action(leaf->params);
 }
 
 behavior_tree_node_t* BehaviorCreateLeaf(BehaviorTreeLeafFunc fn, behavior_params_t* params){
@@ -188,7 +235,6 @@ behavior_tree_node_t* BehaviorCreateSelector(behavior_tree_node_t **children, in
 
 BehaviorStatus BehaviorTickSequence(behavior_tree_node_t *self, void *context) {
     behavior_tree_sequence_t *seq = (behavior_tree_sequence_t *)self->data;
-
     while (seq->current < seq->num_children) {
         BehaviorStatus status = seq->children[seq->current]->tick(seq->children[seq->current], context);
         if (status == BEHAVIOR_RUNNING) return BEHAVIOR_RUNNING;

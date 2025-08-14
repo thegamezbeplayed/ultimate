@@ -138,6 +138,7 @@ typedef struct{
   Vector2               destination;
   int                   aggro;
   int                   range;
+  bool                  has_arrived;
   behavior_tree_node_t* bt[STATE_END];
 }controller_t;
 controller_t* InitController(ObjectInstance data);

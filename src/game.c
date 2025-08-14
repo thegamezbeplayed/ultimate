@@ -5,7 +5,6 @@
 Camera2D camera = { 0 };
 Texture2D sprite_sheet;
 game_process_t game_process;
-JNode* raw_game_data;
 //----------------------------------------------------------------------------------
 // Gameplay Screen Functions Definition
 //----------------------------------------------------------------------------------
@@ -60,7 +59,7 @@ void InitGameplayScreen(void)
   LoadJson("resources/bt.json",&rawJNode);
 
   if(rawJNode!=NULL){
-    raw_game_data = ParseJNode(rawJNode);
+    LoadBehaviorTrees(rawJNode);
   }
   
   world_data_t wdata = {0};
@@ -133,7 +132,6 @@ void DrawGameplayScreen(void)
 {
   BeginMode2D(camera);
 
-  // TODO: Draw GAMEPLAY screen here!
   Draw2DGrid(GRID_SIZE, GetScreenWidth()*4, GetScreenHeight()*4);
 
   WorldRender();

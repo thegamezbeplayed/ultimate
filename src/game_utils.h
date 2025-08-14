@@ -12,6 +12,7 @@
 #define CALL_FUNC(type, ptr, ...) ((type)(ptr))(__VA_ARGS__)
 
 void LoadJson(const char* filename, struct json_object** out);
+void LoadBehaviorTrees(json_object *root);
 
 static inline void DO_NOTHING(void){}
 //<===BEHAVIOR TREES
@@ -19,14 +20,25 @@ static inline void DO_NOTHING(void){}
 typedef enum { JNODE_LEAF, JNODE_SEQUENCE, JNODE_SELECTOR } JNodeType;
 
 typedef struct JNode {
-    JNodeType type;
-    const char *name;     // for leaf
-    void *params;         // optional
+    JNodeType    type;
+    const char   *name;     // for leaf
+    json_object  *params;         // optional
     struct JNode **children;
-    int child_count;
+    int          child_count;
 } JNode;
 JNode* ParseJNode(struct json_object* root);
-extern JNode* raw_game_data;
+
+//forward declare
+typedef struct behavior_tree_node_s behavior_tree_node_t;
+
+typedef struct {
+    const char           *name;
+    JNode                *root;
+    behavior_tree_node_t *tree;
+} bt_register_entry_t;
+
+behavior_tree_node_t *BehaviorGetTree(const char *name);
+void BT_RegisterTree(const char *name, JNode *root);
 
 typedef enum{
   BEHAVIOR_SUCCESS,
@@ -40,9 +52,6 @@ typedef enum{
   BT_SELECTOR
 }BehaviorTreeType;
 
-//forward declare
-typedef struct behavior_tree_node_s behavior_tree_node_t;
-
 typedef struct {
     char name[32];
     behavior_tree_node_t *root;
@@ -52,8 +61,6 @@ static TreeCacheEntry tree_cache[16];
 static int tree_cache_count = 0;
 
 behavior_tree_node_t* BuildFromJNode(const JNode *jn);
-behavior_tree_node_t* BehaviorGetTree(const char *name);
-void BehaviorAddTree(const char *name, behavior_tree_node_t *root);
 static behavior_tree_node_t* BehaviorFindLeafFactory(const char *name);
 
 typedef BehaviorStatus (*BehaviorTreeTickFunc)(behavior_tree_node_t* self, void* context);
@@ -63,7 +70,7 @@ typedef struct behavior_params_s{
   EntityState    state;
 }behavior_params_t;
 
-behavior_params_t* BuildBehaviorParams(void* params);
+behavior_params_t* BuildBehaviorParams(json_object* params);
 
 typedef struct behavior_tree_node_s{
   BehaviorTreeType      bt_type;
@@ -110,6 +117,7 @@ BehaviorStatus BehaviorAcquireDestination(behavior_params_t *params);
 BehaviorStatus BehaviorAcquireTarget(behavior_params_t *params);
 BehaviorStatus BehaviorCanSeeTarget(behavior_params_t *params);
 BehaviorStatus BehaviorMoveToTarget(behavior_params_t *params);
+BehaviorStatus BehaviorMoveToDestination(behavior_params_t *params);
 BehaviorStatus BehaviorCanAttackTarget(behavior_params_t *params);
 BehaviorStatus BehaviorAttackTarget(behavior_params_t *params);
 
@@ -118,6 +126,7 @@ static inline behavior_tree_node_t* LeafAcquireTarget(behavior_params_t *params)
 static inline behavior_tree_node_t* LeafAcquireDestination(behavior_params_t *params)  { return BehaviorCreateLeaf(BehaviorAcquireDestination,params); }
 static inline behavior_tree_node_t* LeafCanSeeTarget(behavior_params_t *params)  { return BehaviorCreateLeaf(BehaviorCanSeeTarget,params); }
 static inline behavior_tree_node_t* LeafMoveToTarget(behavior_params_t *params)  { return BehaviorCreateLeaf(BehaviorMoveToTarget,params); }
+static inline behavior_tree_node_t* LeafMoveToDestination(behavior_params_t *params)  { return BehaviorCreateLeaf(BehaviorMoveToDestination,params); }
 static inline behavior_tree_node_t* LeafCanAttackTarget(behavior_params_t *params)  { return BehaviorCreateLeaf(BehaviorCanAttackTarget,params); }
 static inline behavior_tree_node_t* LeafAttackTarget(behavior_params_t *params)  { return BehaviorCreateLeaf(BehaviorAttackTarget,params); }
 
@@ -128,6 +137,7 @@ static BTLeafRegistryEntry g_bt_leaves[] = {
     { "AcquireDestination",  LeafAcquireDestination  },
     { "CanSeeTarget",  LeafCanSeeTarget  },
     { "MoveToTarget",  LeafMoveToTarget  },
+    { "MoveToDestination",  LeafMoveToDestination  },
     { "CanAttackTarget",  LeafCanAttackTarget  },
     { "AttackTarget",  LeafAttackTarget  },
     // ...
