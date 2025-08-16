@@ -1,15 +1,21 @@
-#ifndef __GAME_SPRITES__
-#define __GAME_SPRITES__
+#ifndef __GAME_ASSETS__
+#define __GAME_ASSETS__
 
 #include "raylib.h"
 #include <stdlib.h>
 #include <string.h>
 #include "ray_sheet.h"
 
+#define MAX_SONGS 4
+
 extern Texture2D sprite_sheet;
 
 //forward declarations
 struct ent_s;
+
+typedef struct{
+  Music   songs[MAX_SONGS];
+}audio_manager_t;
 
 typedef enum{
   LAYER_ROOT,
@@ -53,6 +59,7 @@ typedef struct {
 
 sprite_t* InitSprite(const char* tag, sprite_sheet_data_t* spritesheet);
 sprite_t* InitSpriteByIndex(int index, sprite_sheet_data_t* spritesheet);
+bool FreeSprite(sprite_t* s);
 void DrawSprite(sprite_t* s);
 //====SPRITE_T>>
 #endif

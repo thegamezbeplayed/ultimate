@@ -1,4 +1,7 @@
 #include "game_process.h"
+#include "game_tools.h"
+
+MAKE_ADAPTER(StepState, ent_t*);
 
 void GameReady(){
   WorldInitOnce();
@@ -21,8 +24,73 @@ int WorldGetEnts(ent_t** results,EntFilterFn fn, void* params){
   return num_results;
 }
 
+Vector2 GetWorldCoordsFromIntGrid(Vector2 pos, float len){
+  int grid_x = (int)pos.x/CELL_WIDTH;
+  int grid_y = (int)pos.y/CELL_HEIGHT;
+
+  int grid_step = (int)len/CELL_WIDTH;
+
+  int start_x = CLAMP(grid_x - grid_step,1,GRID_WIDTH);
+  int start_y = CLAMP(grid_y - grid_step,1,GRID_HEIGHT);
+
+  int end_x = CLAMP(grid_x + grid_step,1,GRID_WIDTH);
+  int end_y = CLAMP(grid_y + grid_step,1,GRID_HEIGHT);
+
+ 
+ Cell candidates[GRID_WIDTH * GRID_HEIGHT];
+ int count = 0;
+  for (int x = start_x; x < end_x; x++)
+    for(int y = start_y; y < end_y; y++){
+      if(world.intgrid[x][y])
+        continue;
+      if(distance(grid_x,grid_y,x,y) > len)
+        continue;
+
+      candidates[count++] = (Cell){x,y};
+    }
+
+  if (count == 0)
+    return VEC_UNSET;
+
+  int r = rand() % count;
+
+  return CellToVector2(candidates[r],CELL_WIDTH);
+}
+
 Rectangle WorldRoomBounds(){
   return world.room_bounds;
+}
+
+int RemoveSprite(int index){
+  int last_pos = world.num_spr -1;
+  
+  if(!FreeSprite(world.sprs[index]))
+    return 0;
+
+  world.num_spr--;
+  if(index!=last_pos){
+    world.sprs[index] = world.sprs[last_pos];
+    return 1;
+  }
+ 
+  return 0;
+  
+}
+
+int RemoveBody(int index){
+  int last_pos = world.num_col -1;
+  
+  if(!FreeRigidBody(world.cols[index]))
+    return 0;
+
+  world.num_col--;
+  if(index!=last_pos){
+    world.cols[index] = world.cols[last_pos];
+    return 1;
+  }
+ 
+  return 0;
+  
 }
 
 int AddEnt(ent_t *e) {
@@ -75,7 +143,6 @@ bool RegisterRigidBody(rigid_body_t *b){
   b->buid = AddRigidBody(b);
 
   return b->buid > -1;
-
 }
 
 bool RegisterSprite(sprite_t *s){
@@ -85,22 +152,28 @@ bool RegisterSprite(sprite_t *s){
 }
 
 void WorldInitOnce(){
-
   InteractionStep();
 
   for(int i = 0; i < world.num_ent; i++){
     if(world.cols[i])
       PhysicsInitOnce(world.cols[i]);
     
-    SetState(world.ents[i], STATE_IDLE,NULL);
     EntSync(world.ents[i]);
+   
+    cooldown_t* spawner = InitCooldown(3,EVENT_SPAWN,StepState_Adapter,world.ents[i]);
+    AddEvent(world.ents[i]->events, spawner);
   }
 
 }
 
 void WorldPreUpdate(){
   InteractionStep();
-  PhysicsCollision(world.cols,world.num_col,RigidBodyCollide);
+  for(int i = 0; i < world.num_col; i++){
+    if(world.cols[i]->owner!=NULL)
+      PhysicsCollision(i,world.cols,world.num_col,RigidBodyCollide);
+    else
+      i-=RemoveBody(i);
+  }
 }
 
 void WorldFixedUpdate(){
@@ -123,19 +196,29 @@ void WorldFixedUpdate(){
 
 void InitWorld(world_data_t data){
   world = (world_t){0};
+  for(int x = 0; x < GRID_WIDTH; x++)
+    for(int y = 0; y < GRID_HEIGHT; y++)
+      world.intgrid[x][y] = false;
+
   world.room_bounds = RecFromCoords(0,0,ROOM_WIDTH,ROOM_HEIGHT);
   for (int i = 0; i < data.num_ents; i++)
     RegisterEnt(InitEnt(data.ents[i]));
   
-  for (int j = 0; j < ROOM_TILE_COUNT; j++)
+  for (int j = 0; j < ROOM_TILE_COUNT; j++){
+    world.intgrid[data.tiles[j].map_x][data.tiles[j].map_y] = true;
     RegisterEnt(InitEntStatic(data.tiles[j]));
+  }
 }
 
 void WorldRender(){
   DrawRectangleRec(world.room_bounds, PURPLE);
   
   for(int i = 0; i < world.num_spr;i++){
-    DrawSprite(world.sprs[i]);
+    if(world.sprs[i]->owner !=NULL)
+      DrawSprite(world.sprs[i]);
+    else
+      i-=RemoveSprite(i);
+    
     if(!DEBUG)
       continue;
     Rectangle bounds = {
@@ -151,7 +234,7 @@ void WorldRender(){
 void InitGameProcess(){
   game_process.state = GAME_LOADING;
   game_process.events = InitEvents();
-  cooldown_t* loadEvent = InitCooldown(90,GameReady,EVENT_GAME_PROCESS);
+  cooldown_t* loadEvent = InitCooldown(90,EVENT_GAME_PROCESS,GameReady,NULL);
   AddEvent(game_process.events,loadEvent);
 }
 

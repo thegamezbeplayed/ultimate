@@ -6,8 +6,26 @@
 #define CLAMPV2(v,a,b) ((v)<(a)?(a):((v)>(b)?(b):(v)))
 #define VEC_UNSET (Vector2){FLT_MAX, FLT_MAX}
 
+typedef struct {
+  int x,y;
+} Cell;
+
+static inline float distance(int x1, int y1, int x2, int y2) {
+    int dx = x2 - x1;
+    int dy = y2 - y1;
+    return sqrtf(dx*dx + dy*dy);
+}
+
 static inline float frand() {
     return (float)rand() / (float)RAND_MAX;
+}
+static inline Vector2 CellToVector2(Cell c, float scale){
+  Vector2 result = Vector2FromXY(c.x,c.y);
+
+  return Vector2Scale(result,scale);
+}
+static inline bool v2_compare(Vector2 v1,Vector2 v2){
+  return (v1.x==v2.x && v1.y==v2.y);
 }
 static inline float v2_len(Vector2 v){ return sqrtf(v.x*v.x + v.y*v.y); }
 static inline Vector2 v2_add(Vector2 a, Vector2 b){ return (Vector2){a.x+b.x,a.y+b.y}; }
@@ -59,24 +77,18 @@ static float max_step_inside_rect(Vector2 p, Vector2 dir, Rectangle r){
   tmax = fmaxf(0.0f, tmax - eps);
   return tmax;
 }
+
 //TODO this doesnt do what i think..
 static inline Vector2 GetNearbyDestination(Vector2 curr, float len, Rectangle area, float bias,float padding){
   // Clamp start to inside
   curr = clamp_point_to_rect(curr, area);
 
-  // Random direction
+  
   float angle = frand() * 6.28318530718f;
-  Vector2 dir = (Vector2){cosf(angle), sinf(angle)};
 
-  // Find max allowed in this dir
-  float tmax = max_step_inside_rect(curr, dir, RectangleCrop(area,padding,padding));
-  if (tmax <= 1e-5f) return curr; // No room to move
+  Vector2 result = v2_add(curr,Vector2FromAngle(angle,len));
 
-  // Choose step length: bias toward closer
-  float dist_factor = frand(); // uniform 0..1
-  dist_factor = powf(dist_factor, bias * 5.0f + 1.0f); 
-  float step = fminf(len, tmax) * dist_factor;
-
-  return v2_add(curr, v2_scale(dir, step));
+  return clamp_point_to_rect(result,RectangleCrop(area,padding,padding));
 }
+
 #endif

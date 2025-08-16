@@ -4,6 +4,12 @@
 #define ROOM_WIDTH 1440
 #define ROOM_HEIGHT 880
 
+#define GRID_WIDTH 18
+#define GRID_HEIGHT 11
+
+#define CELL_WIDTH 80
+#define CELL_HEIGHT 80
+
 typedef struct {
     const char* engine_instance;
 		const char* name;
@@ -16,7 +22,7 @@ typedef struct {
 } ObjectInstance;
 
 static const ObjectInstance room_instances[] = {
-    {"ent_data", "Mob Square", 960, 320, 3, 16, 4, 1},
+    {"ent_data", "Mob Square", 1248, 128, 3, 16, 4, 1},
     {"ent_data", "Red Ball", 416, 288, 1, 16, 0, 0},
 };
 

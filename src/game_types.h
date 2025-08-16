@@ -2,7 +2,7 @@
 #define __GAME_TYPES__
 
 #include "game_common.h"
-#include "game_sprites.h"
+#include "game_assets.h"
 #include "game_utils.h"
 #include "room_data.h"
 #include "raylib.h"
@@ -37,7 +37,7 @@ stat_t InitStatOnMax(StatType attr, float val);
 stat_t InitStatEmpty();
 void InitStats(stat_t stats[STAT_BLANK]);
 void StatChangeValue(ent_t* owner, stat_t* attr, float val);
-
+void StatMaxOut(stat_t* s);
 //<====STATS
 
 //PHYSICS====>
@@ -72,7 +72,6 @@ typedef struct {
   bool       is_active;
   //int        steps;
   ForceReactionCallback on_react;
-
 }force_t;
 //===RIGID_BODY===>
 typedef bool (*CollisionCallback)(rigid_body_t* a, rigid_body_t* b, ent_t *e);
@@ -103,7 +102,7 @@ typedef struct rigid_body_s {
 
 rigid_body_t* InitRigidBody(ent_t* owner,Vector2 pos, float radius);
 rigid_body_t* InitRigidBodyStatic(ent_t* owner,Vector2 pos, float radius);
-
+bool FreeRigidBody(rigid_body_t* b);
 //<====RIGID_BODY
 static inline float PhysicsSimpleDistCheck(rigid_body_t* a, rigid_body_t* b){
   return Vector2Distance(a->position, b->position);
@@ -116,7 +115,7 @@ bool PhysicsStepForce(force_t *force,bool accelerate);
 void PhysicsApplyForce(rigid_body_t* body, force_t force);
 void PhysicsAccelDir(rigid_body_t *b, ForceType type, Vector2 dir);
 void PhysicsSetAccel(rigid_body_t *b, ForceType type,Vector2 accel);
-void PhysicsCollision(rigid_body_t* bodies[MAX_ENTS],int num_bodies, CollisionCallback callback);
+void PhysicsCollision(int i,rigid_body_t* bodies[MAX_ENTS],int num_bodies, CollisionCallback callback);
 bool CheckCollision(rigid_body_t *a, rigid_body_t *b, int len);
 bool RigidBodyCollide(rigid_body_t* a, rigid_body_t* b, ent_t *e);
 force_t ForceFromVector2(ForceType type, Vector2 vec);
@@ -152,6 +151,7 @@ typedef struct ent_s{
   rigid_body_t          *body;
   EntityState           state;
   controller_t          *control;
+  events_t              *events;
   int                   num_attacks;
   int                   active_attack_id;
   attack_t              attacks[MAX_ATTACKS];
@@ -173,6 +173,7 @@ void EntControlStep(ent_t *e);
 typedef void (*StateChangeCallback)(ent_t *e, EntityState old, EntityState s);
 bool CheckEntOutOfBounds(ent_t* e, Rectangle bounds);
 bool SetState(ent_t *e, EntityState s,StateChangeCallback callback);
+void StepState(ent_t *e);
 void OnStateChange(ent_t *e, EntityState old, EntityState s);
 bool CanChangeState(EntityState old, EntityState s);
 

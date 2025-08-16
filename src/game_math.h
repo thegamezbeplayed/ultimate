@@ -2,6 +2,7 @@
 #define __GAME_MATH__
 #include "raymath.h"
 
+#define CLAMP(x, low, high) (((x) < (low)) ? (low) : (((x) > (high)) ? (high) : (x)))
 #define CLAMPF(val, min, max) ((val) < (min) ? (min) : ((val) > (max) ? (max) : (val)))
 
 typedef struct bounds_s bounds_t;
@@ -18,6 +19,14 @@ static inline Vector2 Vector2FromXY(float x, float y){
 
   return result;
 }
+
+static inline Vector2 Vector2FromAngle(float a, float len){
+  return (Vector2){
+    .x = cosf(a) * len,
+    .y = sinf(a) * len
+  };
+}
+
 static inline Rectangle RectangleCrop(Rectangle rec, float ex_wid,float ex_hei){
   return (Rectangle){
     .x = rec.x + ex_wid,

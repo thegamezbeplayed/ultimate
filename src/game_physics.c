@@ -86,6 +86,14 @@ rigid_body_t* InitRigidBodyStatic(ent_t* owner, Vector2 pos,float radius){
   return b;
 }
 
+bool FreeRigidBody(rigid_body_t* b){
+  if(!b)
+    return false;
+
+  free(b);
+  return true;
+}
+
 void PhysicsInitOnce(rigid_body_t* b){
   b->collision_bounds.pos = Vector2Add(b->collision_bounds.offset,b->position);
   b->owner->pos = b->position;
@@ -189,17 +197,6 @@ bool CheckStep(rigid_body_t* b, Vector2 vel, float dist, Vector2* out){
 
     testRec.y += yCorrection;
     testStep.y += yCorrection;
-
-
-    //  || overlap.height > 0){
-
-      //float dotprod = Vector2DotProduct(vel, VectorDirectionBetween(b->position,b->collisions[i].pos));
-
-
-
-      //trimmed = true; 
-    //}
-
   }
 
   *out = Vector2Subtract(testStep,b->position);
@@ -274,33 +271,32 @@ force_t ForceEmpty(ForceType type){
   return g;
 }
 
-void PhysicsCollision(rigid_body_t* bodies[MAX_ENTS],int num_bodies, CollisionCallback callback){
-  for (int i = 0; i < num_bodies; i++){
-    if(!bodies[i]->simulate)
+void PhysicsCollision(int i, rigid_body_t* bodies[MAX_ENTS],int num_bodies, CollisionCallback callback){
+  if(!bodies[i]->simulate)
+    return;
+
+  for (int j = 0; j < num_bodies; j++){
+    if(i == j)
       continue;
-    for (int j = 0; j < num_bodies; j++){
-      if(i == j)
-        continue;
 
-      if(bodies[i]->owner == bodies[j]->owner)
-        continue;
-      
-      if(!bodies[j]->simulate)
-        continue;
+    if(bodies[i]->owner == bodies[j]->owner)
+      continue;
 
-      if(bodies[j]->is_static)
-        continue;
+    if(!bodies[j]->simulate)
+      continue;
 
-      if(!CanInteract(bodies[i]->buid, bodies[j]->buid))
-        continue;
-      
-      if(!CheckCollision(bodies[i], bodies[j],0))
-        continue;
+    if(bodies[j]->is_static)
+      continue;
 
-      if(callback)
-        if(callback(bodies[i],bodies[j],bodies[j]->owner))
-          AddInteraction(EntInteraction(i,j,bodies[i]->col_rate));
-    }
+    if(!CanInteract(bodies[i]->buid, bodies[j]->buid))
+      continue;
+
+    if(!CheckCollision(bodies[i], bodies[j],0))
+      continue;
+
+    if(callback)
+      if(callback(bodies[i],bodies[j],bodies[j]->owner))
+        AddInteraction(EntInteraction(i,j,bodies[i]->col_rate));
   }
 }
 
@@ -404,13 +400,12 @@ void ReactionBumpForce(rigid_body_t* a, rigid_body_t* b, ForceType t){
 }
 
 bool CheckCanSeeTarget(rigid_body_t* a, rigid_body_t *b, float range){
-  return PhysicsSimpleDistCheck(a,b) > range;
   if(PhysicsSimpleDistCheck(a,b) > range)
     return false;
 
   Ray2D ray = {
     a->position,
-    a->owner->facing,
+    VectorDirectionBetween(a->position,b->position),
     range
   };
 

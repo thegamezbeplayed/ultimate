@@ -1,7 +1,42 @@
 #ifndef __GAME_COMMON__
 #define __GAME_COMMON__
 
+#include "raylib.h"
 
+#define MAX_EVENTS 16
+
+//====EVENTS===>
+typedef enum{
+  EVENT_GAME_PROCESS,
+  EVENT_INTERACTION,
+  EVENT_SPAWN,
+  EVENT_ATTACK_INPUT,
+  EVENT_ATTACK_RATE,
+  EVENT_NONE
+} EventType;
+
+typedef void (*CooldownCallback)(void* params);
+
+typedef struct{
+  EventType         type;
+  int               duration;
+  int               elapsed;
+  bool              is_complete;
+  void*             on_end_params;
+  CooldownCallback  on_end;
+}cooldown_t;
+cooldown_t* InitCooldown(int dur, EventType type, CooldownCallback on_end_callback, void* params);
+
+typedef struct{
+  cooldown_t  cooldowns[MAX_EVENTS];
+  bool        cooldown_used[MAX_EVENTS];
+}events_t;
+
+
+events_t* InitEvents();
+bool AddEvent(events_t* pool, cooldown_t* cd);
+void StepEvents(events_t* pool);
+//<======EVENTS>
 typedef enum{
   TEAM_PLAYER,
   TEAM_ENEMIES,
@@ -21,8 +56,8 @@ typedef enum{
   STATE_SPAWN,//Should only be set after NONE
   STATE_IDLE, //should be able to move freely between these ==>
   STATE_WANDER,
-  STATE_ATTACK,
   STATE_AGGRO,
+  STATE_ATTACK,
   STATE_DIE,//<===== In MOST cases. Should not be able to go down from DIE
   STATE_END//sentinel entity state should never be this or greater
 }EntityState;
@@ -43,6 +78,7 @@ static EntityStateAlias ent_state_alias[STATE_END] = {
 };
 
 EntityState EntityStateLookup(const char* name);
+const char* EntityStateName(EntityState s);
 //===STATS===>
 typedef enum{
   STAT_HEALTH,

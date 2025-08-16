@@ -99,10 +99,10 @@ BehaviorStatus BehaviorAcquireDestination(behavior_params_t *params){
   if(!e || !e->control)
     return BEHAVIOR_FAILURE;
 
-  if(!e->control->has_arrived)
+  if(!e->control->has_arrived && !v2_compare(e->control->destination,VEC_UNSET))
     return BEHAVIOR_SUCCESS;
 
-  e->control->destination = GetNearbyDestination(e->pos, 2*e->control->aggro,WorldRoomBounds(),0.75,e->body->collision_bounds.radius);
+  e->control->destination = GetWorldCoordsFromIntGrid(e->pos, e->control->aggro);
  
  TraceLog(LOG_INFO,"Ent %s move to <%0.2f,%0.2f>",e->name,e->control->destination.x,e->control->destination.y); 
   return BEHAVIOR_SUCCESS;

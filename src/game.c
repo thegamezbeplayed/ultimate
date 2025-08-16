@@ -46,6 +46,8 @@ void InitGameplayScreen(void)
 {
   InitGameProcess();
 
+  LoadrtpAtlasSprite(&spritedata);
+
   //camera.target = player.position;
   camera.offset = (Vector2){ GetScreenWidth()/2.0f, GetScreenHeight()/2.0f };
   camera.rotation = 0.0f;
@@ -73,6 +75,7 @@ void InitGameplayScreen(void)
   }
   
   InitWorld(wdata);
+  camera.target = (Vector2){ROOM_WIDTH/2,ROOM_HEIGHT/2};
 }
 
 void PreUpdate(void){
@@ -122,14 +125,18 @@ void UpdateGameplayScreen(void)
     deltaTime = (float)updateDrawTime;    // Framerate could be variable
 
   previousTime = currentTime;
-  
+ /* 
   if(player)
     camera.target = player->pos;
+    */
 }
 
 // Gameplay Screen Draw logic
 void DrawGameplayScreen(void)
 {
+  if(game_process.state == GAME_LOADING)
+    return;
+
   BeginMode2D(camera);
 
   Draw2DGrid(GRID_SIZE, GetScreenWidth()*4, GetScreenHeight()*4);

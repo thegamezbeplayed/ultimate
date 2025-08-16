@@ -25,13 +25,12 @@ interaction_t* EntInteraction(unsigned int source, unsigned int target, int dura
  *result = (interaction_t){
    .source_uid = source,
    .target_uid = target,
-   .timer = InitCooldown(duration,NULL,EVENT_INTERACTION)
+   .timer = InitCooldown(duration,EVENT_INTERACTION,NULL,NULL)
  };
 
  return result;
 }
-
-cooldown_t* InitCooldown(int dur, void* on_end_callback,EventType type){
+cooldown_t* InitCooldown(int dur, EventType type, CooldownCallback on_end_callback, void* params){
   cooldown_t* cd = malloc(sizeof(cooldown_t)); 
 
   *cd = (cooldown_t){
@@ -39,7 +38,8 @@ cooldown_t* InitCooldown(int dur, void* on_end_callback,EventType type){
       .is_complete = false,
       .duration = dur,
       .elapsed = 0,
-      .on_end = on_end_callback ? on_end_callback : DO_NOTHING
+      .on_end_params = params,
+      .on_end = on_end_callback// ? on_end_callback : DO_NOTHING
   };
   
   return cd;
@@ -159,7 +159,7 @@ void StepEvents(events_t* pool){
       TraceLog(LOG_INFO,"Cooldown %i ended",pool->cooldowns[i].type);
       pool->cooldowns[i].is_complete = true;
       pool->cooldowns[i].elapsed = 0;
-      CALL_FUNC(void (*)(void),pool->cooldowns[i].on_end);
+      pool->cooldowns[i].on_end(pool->cooldowns[i].on_end_params);
       continue;
     }
 

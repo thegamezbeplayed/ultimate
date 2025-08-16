@@ -1,5 +1,4 @@
 #include "raylib.h"
-#include "game_sprites.h"
 #include "screens.h"    // NOTE: Declares global (extern) variables and screens functions
 
 #if defined(PLATFORM_WEB)
@@ -16,7 +15,6 @@ int main(void)
     //---------------------------------------------------------
     InitWindow(screenWidth, screenHeight, "raylib game template");
 
-    LoadrtpAtlasSprite(&spritedata);
     InitAudioDevice();      // Initialize audio device
 #if defined(PLATFORM_WEB)
     emscripten_set_main_loop(UpdateDrawFrame, 60, 1);

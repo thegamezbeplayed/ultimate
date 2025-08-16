@@ -1,4 +1,4 @@
-#include "game_sprites.h"
+#include "game_assets.h"
 #include "game_utils.h"
 #include "game_math.h"
 
@@ -52,8 +52,19 @@ void DrawSlice(Texture2D tex, sprite_slice_t *slice, Vector2 position,bool mirro
     return;
 }
 
+bool FreeSprite(sprite_t* s){
+  if(!s) return false;
+
+  if(s->slice)
+    free(s->slice);
+
+  free(s);
+  return true;
+}
+
 void DrawSprite(sprite_t* s){
-  DrawSlice(sprite_sheet,s->slice, s->pos,s->mirror);
+  if(s->is_visible)
+    DrawSlice(sprite_sheet,s->slice, s->pos,s->mirror);
 }
 
 void LoadrtpAtlasSprite(sprite_sheet_data_t *out){

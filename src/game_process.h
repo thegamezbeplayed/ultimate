@@ -2,9 +2,9 @@
 #define __GAME_PROCESS__
 
 #include "game_types.h"
+#include "game_common.h"
 
 #define MAX_INTERACTIONS 256
-#define MAX_EVENTS 16
 #define DEBUG false
 
 extern ent_t* player;
@@ -23,32 +23,6 @@ static bool EntNotOnTeamAlive(ent_t* e,ent_t* other){
     return true;
 }
 
-typedef enum{
-  EVENT_GAME_PROCESS,
-  EVENT_INTERACTION,
-  EVENT_ATTACK_INPUT,
-  EVENT_ATTACK_RATE,
-  EVENT_NONE
-} EventType;
-
-typedef struct{
-  EventType type;
-  int       duration;
-  int       elapsed;
-  bool      is_complete;
-  void*     on_end;
-}cooldown_t;
-cooldown_t* InitCooldown(int dur, void* on_end_callback,EventType type);
-
-typedef struct{ 
-  cooldown_t  cooldowns[MAX_EVENTS];
-  bool        cooldown_used[MAX_EVENTS];
-}events_t;
-
-
-events_t* InitEvents();
-bool AddEvent(events_t* pool, cooldown_t* cd);
-void StepEvents(events_t* pool);
 //INTERACTIONS_T===>
 typedef struct {
   int             source_uid; //uid of who interacted (body, ent)
@@ -90,6 +64,7 @@ typedef struct{
 
 typedef struct world_s{
   Rectangle     room_bounds;
+  bool          intgrid[GRID_WIDTH][GRID_HEIGHT];
   ent_t*        ents[MAX_ENTS];
   unsigned int  num_ent;
   rigid_body_t* cols[MAX_ENTS];
@@ -99,6 +74,7 @@ typedef struct world_s{
 } world_t;
 
 int WorldGetEnts(ent_t** results,EntFilterFn fn, void* params);
+Vector2 GetWorldCoordsFromIntGrid(Vector2 pos, float len);
 bool RegisterEnt( ent_t *e);
 bool RegisterRigidBody(rigid_body_t *b);
 bool RegisterSprite(sprite_t *s);

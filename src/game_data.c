@@ -12,6 +12,17 @@ EntityState EntityStateLookup(const char* name){
 
 }
 
+const char* EntityStateName(EntityState s){
+  for (int i = 0; i < STATE_END; i++){
+    if(ent_state_alias[i].state == s)
+      return ent_state_alias[i].name;
+  }
+
+  TraceLog(LOG_WARNING,"<====GAME_DATA====>\n====== State Definition for %d not implemented!",s);
+  return 0;
+
+}
+
 //TODO might just load any json
 void LoadJson(const char* filename,struct json_object** out){
   *out = json_object_from_file(filename);

@@ -1,16 +1,19 @@
 #include "game_types.h"
+#include "game_tools.h"
 
 ent_t* InitEnt(ObjectInstance data){
   ent_t* e = malloc(sizeof(ent_t));
   *e = (ent_t){0};  // zero initialize if needed
   Vector2 pos = Vector2FromXY(data.x,data.y);
-  e->pos = pos;
   e->name = (char*)malloc(100*sizeof(char));
 
   strcpy(e->name,data.name);
   e->sprite = InitSpriteByIndex(data.sprite_sheet_index,&spritedata);
-    
+  e->sprite->owner = e;  
+  
   float radius = e->sprite->slice->bounds.height * 0.5f;
+  pos = Vector2Add(pos,e->sprite->slice->center);
+  e->pos = pos;
   e->body = InitRigidBody(e,pos, radius);
   SetState(e,STATE_SPAWN,NULL);
   e->team = data.team_enum;
@@ -22,7 +25,9 @@ ent_t* InitEnt(ObjectInstance data){
     e->control = InitController(data);
     e->control->bt[STATE_IDLE] = InitBehaviorTree("Seek");
     e->control->bt[STATE_WANDER] = InitBehaviorTree("Wander");
+    e->control->bt[STATE_AGGRO] = InitBehaviorTree("Chase");
   }
+  e->events = InitEvents();
   SetState(e,STATE_SPAWN,OnStateChange);
   return e;
 }
@@ -31,18 +36,23 @@ ent_t* InitEntStatic( TileInstance data){
   ent_t* e = malloc(sizeof(ent_t));
   *e = (ent_t){0};  // zero initialize if needed
   Vector2 pos = Vector2FromXY(data.start_x,data.start_y);
-  e->pos = pos;
 
   e->sprite = InitSpriteByIndex(data.tile_index,&spritedata);
   if(e->sprite!=NULL){
+    e->sprite->owner = e;  
+    pos = Vector2Add(pos,e->sprite->slice->center);
     e->sprite->layer = LAYER_BG;
   }
   e->name = "tile";
+  e->pos = pos;
   float radius = e->sprite->slice->bounds.height * 0.5f;
   e->body = InitRigidBodyStatic(e,pos, radius);
+  e->events = InitEvents();
   e->team = TEAM_ENVIROMENT;
+  SetState(e, STATE_SPAWN,OnStateChange);
   return e;
 }
+
 void EntKill(ent_t* e){
   SetState(e, STATE_DIE,NULL);
 }
@@ -71,6 +81,7 @@ void EntDestroy(ent_t* e){
 void EntFree(ent_t* e){
 
 }
+
 stat_t InitStatEmpty(){
   return (stat_t){
     .attribute = STAT_BLANK,
@@ -89,6 +100,10 @@ stat_t InitStatOnMax(StatType attr, float val){
       .current = val,
       .increment = 1//TODO idk yet
   };
+}
+
+void StatMaxOut(stat_t* s){
+  s->current = s->max;
 }
 
 void InitStats(stat_t stats[STAT_BLANK]){
@@ -114,7 +129,8 @@ controller_t* InitController(ObjectInstance data){
   controller_t* ctrl = malloc(sizeof(controller_t));
   *ctrl = (controller_t){0};
 
-  ctrl->aggro = 160;
+  ctrl->destination = VEC_UNSET;
+  ctrl->aggro = 300;
   ctrl->range = 80;
   return ctrl;
 }
@@ -132,6 +148,8 @@ void EntSync(ent_t* e){
     default:
       break;
   }
+
+  StepEvents(e->events);
 }
 
 void EntControlStep(ent_t *e){
@@ -158,6 +176,10 @@ bool SetState(ent_t *e, EntityState s,StateChangeCallback callback){
   return false;
 }
 
+void StepState(ent_t *e){
+  SetState(e, e->state+1,NULL);
+}
+
 bool CanChangeState(EntityState old, EntityState s){
   if(old == s || old > STATE_END)
     return false;
@@ -178,16 +200,23 @@ bool CanChangeState(EntityState old, EntityState s){
 } 
 
 void OnStateChange(ent_t *e, EntityState old, EntityState s){
+  TraceLog(LOG_INFO,"Entity %s state change from %s to %s",e->name,EntityStateName(old),EntityStateName(s));
   switch(old){
     case STATE_SPAWN:
       if(e->body)
         e->body->simulate=true;
+      if(e->sprite)
+        e->sprite->is_visible = true;
       break;
+    case STATE_WANDER:
+      StatMaxOut(&e->stats[STAT_ACCEL]);
     default:
       break;
   }
 
   switch(s){
+    case STATE_WANDER:
+      e->stats[STAT_ACCEL].current*=0.125;
     default:
       break;
   }
