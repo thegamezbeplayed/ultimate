@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "ray_sheet.h"
+#include "game_common.h"
 
 #define MAX_SONGS 4
 
@@ -14,8 +15,37 @@ extern Texture2D sprite_sheet;
 struct ent_s;
 
 typedef struct{
-  Music   songs[MAX_SONGS];
+  Music music;
+  float elapsed;
+  float duration;
+}music_track_t;
+
+typedef struct{
+  int           index;
+  int           num_songs;
+  music_track_t track[MAX_SONGS];
+}music_group_t;
+
+typedef enum{
+  SFX_ALL,
+  SFX_UI,
+  SFX_ACTION,
+  SFX_NONE
+}SfxGroup;
+
+typedef struct{
+  int   num_sounds;
+  Sound *sounds;
+}sfx_group_t;
+
+typedef struct{
+  music_group_t   tracks;
+  sfx_group_t     sfx[SFX_NONE];
+  events_t        *timers[SFX_NONE];
 }audio_manager_t;
+void InitAudio();
+void AudioStep();
+void AudioPlayRandomSfx(SfxGroup group);
 
 typedef enum{
   LAYER_ROOT,

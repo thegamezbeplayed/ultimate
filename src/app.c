@@ -1,5 +1,6 @@
 #include "raylib.h"
 #include "screens.h"    // NOTE: Declares global (extern) variables and screens functions
+#include "game_assets.h"
 
 #if defined(PLATFORM_WEB)
     #include <emscripten/emscripten.h>
@@ -20,7 +21,7 @@ int main(void)
     emscripten_set_main_loop(UpdateDrawFrame, 60, 1);
 #else
     //--------------------------------------------------------------------------------------
-
+    InitAudio();
     InitGameplayScreen();
     // Main game loop
     while (!WindowShouldClose())    // Detect window close button or ESC key

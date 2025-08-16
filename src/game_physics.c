@@ -295,8 +295,10 @@ void PhysicsCollision(int i, rigid_body_t* bodies[MAX_ENTS],int num_bodies, Coll
       continue;
 
     if(callback)
-      if(callback(bodies[i],bodies[j],bodies[j]->owner))
+      if(callback(bodies[i],bodies[j],bodies[j]->owner)){
         AddInteraction(EntInteraction(i,j,bodies[i]->col_rate));
+        AudioPlayRandomSfx(SFX_ACTION);
+      }
   }
 }
 

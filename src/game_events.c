@@ -141,6 +141,18 @@ events_t* InitEvents(){
   return ev;
 }
 
+bool CheckEvent(events_t* pool, EventType type){
+  for(int i = 0; i<MAX_EVENTS; i++){
+    if(!pool->cooldown_used[i])
+      continue;
+
+    if(pool->cooldowns[i].type == type)
+      return true;
+  }
+
+  return false;
+}
+
 void StepEvents(events_t* pool){
   for (int i = 0; i < MAX_EVENTS; i++){
     if(!pool->cooldown_used[i])
@@ -159,7 +171,8 @@ void StepEvents(events_t* pool){
       TraceLog(LOG_INFO,"Cooldown %i ended",pool->cooldowns[i].type);
       pool->cooldowns[i].is_complete = true;
       pool->cooldowns[i].elapsed = 0;
-      pool->cooldowns[i].on_end(pool->cooldowns[i].on_end_params);
+      if(pool->cooldowns[i].on_end)
+        pool->cooldowns[i].on_end(pool->cooldowns[i].on_end_params);
       continue;
     }
 

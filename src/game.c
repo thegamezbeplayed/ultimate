@@ -81,7 +81,7 @@ void InitGameplayScreen(void)
 void PreUpdate(void){
   if(game_process.state == GAME_LOADING)
     return;
-
+  AudioStep();
   WorldPreUpdate();
 }
 

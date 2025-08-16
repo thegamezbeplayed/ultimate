@@ -12,6 +12,7 @@ typedef enum{
   EVENT_SPAWN,
   EVENT_ATTACK_INPUT,
   EVENT_ATTACK_RATE,
+  EVENT_PLAY_SFX,
   EVENT_NONE
 } EventType;
 
@@ -36,6 +37,7 @@ typedef struct{
 events_t* InitEvents();
 bool AddEvent(events_t* pool, cooldown_t* cd);
 void StepEvents(events_t* pool);
+bool CheckEvent(events_t* pool, EventType);
 //<======EVENTS>
 typedef enum{
   TEAM_PLAYER,
