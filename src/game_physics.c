@@ -59,8 +59,8 @@ rigid_body_t* InitRigidBodyStatic(ent_t* owner, Vector2 pos,float radius){
 
   b->forces[FORCE_IMPULSE] = ForceBasic(FORCE_IMPULSE);
   b->forces[FORCE_IMPULSE].on_react = ReactionBumpForce;
-  b->forces[FORCE_IMPULSE].threshold = 0.915F;
-  b->forces[FORCE_IMPULSE].friction = Vector2FromXY(0.95,0.95);
+  b->forces[FORCE_IMPULSE].threshold = 0.9F;
+  b->forces[FORCE_IMPULSE].friction = Vector2FromXY(0.965,0.965);
 
   b->forces[FORCE_AVOID] = ForceBasic(FORCE_AVOID);
   b->forces[FORCE_AVOID].on_react = CollisionBoundsAvoid;
@@ -70,7 +70,7 @@ rigid_body_t* InitRigidBodyStatic(ent_t* owner, Vector2 pos,float radius){
   b->counter_force[FORCE_IMPULSE] = FORCE_NONE;
   b->counter_force[FORCE_NONE] = FORCE_NONE;
 
-  b->restitution = 0.9;
+  b->restitution = 0.925;
   b->is_static = true;
   b->simulate = false;
   b->col_rate = 1;
@@ -377,7 +377,7 @@ void ReactionBumpForce(rigid_body_t* a, rigid_body_t* b, ForceType t){
 
   float dist = Vector2Distance(b->position,a->position);
 
-  float penAmount = CLAMPF((collider.width + target.width)/GRID_SIZE - dist,0,collider.width);
+  float penAmount = CLAMPF((collider.width + target.width) - dist,0,collider.width);
   Vector2 penetration = Vector2Scale(angBetween,penAmount);
   
   Vector2 bump = Vector2Scale(Vector2Reflect(a->velocity,surface_normal), a->restitution);
@@ -394,7 +394,7 @@ void ReactionBumpForce(rigid_body_t* a, rigid_body_t* b, ForceType t){
 
  //TraceLog(LOG_INFO,"bump <%0.f,%0.f>",bump.x,bump.y); 
  //TraceLog(LOG_INFO,"pen <%0.f,%0.f>",penetration.x,penetration.y); 
- force_t reaction = ForceFromVector2(t,Vector2ClampValue(rForce,0,speed));
+ force_t reaction = ForceFromVector2(t,Vector2ClampValue(rForce,1,speed));
 
   // Apply impulse
   PhysicsApplyForce(a,reaction);

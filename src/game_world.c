@@ -1,11 +1,26 @@
+#include <stdio.h>
+#include <unistd.h>
 #include "game_process.h"
 #include "game_tools.h"
 
+game_process_t game_process;
+
 MAKE_ADAPTER(StepState, ent_t*);
+
+void print_mem_usage() {
+    FILE* f = fopen("/proc/self/status", "r");
+    char buf[256];
+    while (fgets(buf, sizeof(buf), f)) {
+        if (strncmp(buf, "VmRSS:", 6) == 0) {
+            TraceLog(LOG_WARNING,"%s", buf); // prints resident set size
+        }
+    }
+    fclose(f);
+}
 
 void GameReady(){
   WorldInitOnce();
-  game_process.state = GAME_READY;
+  game_process.state[SCREEN_GAMEPLAY] = GAME_READY;
 }
 
 static world_t world;
@@ -210,6 +225,25 @@ void InitWorld(world_data_t data){
   }
 }
 
+void FreeWorld(){
+  for (int i = 0; i < world.num_spr; i++){
+    FreeSprite(world.sprs[i]);
+  }
+  world.num_spr = 0;
+
+  for (int i = 0; i < world.num_col; i++){
+    FreeRigidBody(world.cols[i]);
+  }
+  world.num_col = 0;
+
+  for (int i = 0; i < world.num_ent; i++){
+    EntDestroy(world.ents[i]);
+    free(world.ents[i]);
+  }
+  world.num_ent = 0;
+
+}
+
 void WorldRender(){
   DrawRectangleRec(world.room_bounds, PURPLE);
   
@@ -232,14 +266,89 @@ void WorldRender(){
 }
 
 void InitGameProcess(){
-  game_process.state = GAME_LOADING;
+  struct json_object* rawJNode = NULL;
+
+  LoadJson("resources/bt.json",&rawJNode);
+
+  if(rawJNode!=NULL){
+    LoadBehaviorTrees(rawJNode);
+  }
+
+  for(int s = 0; s<SCREEN_DONE; s++)
+    for(int u = 0; u<UPDATE_DONE;u++){
+      game_process.update_steps[s][u] = DO_NOTHING;
+    }
+ 
+  game_process.next[SCREEN_TITLE] = SCREEN_GAMEPLAY;
+  game_process.init[SCREEN_TITLE] = InitTitleScreen;
+  game_process.finish[SCREEN_TITLE] = UnloadTitleScreen;
+  game_process.update_steps[SCREEN_TITLE][UPDATE_DRAW] = DrawTitleScreen;
+  game_process.update_steps[SCREEN_TITLE][UPDATE_FRAME] = UpdateTitleScreen;
+
+  game_process.next[SCREEN_GAMEPLAY] = SCREEN_TITLE;
+  game_process.init[SCREEN_GAMEPLAY] = InitGameplayScreen;
+  game_process.finish[SCREEN_GAMEPLAY] = UnloadGameplayScreen;
+  game_process.update_steps[SCREEN_GAMEPLAY][UPDATE_FIXED] = FixedUpdate;
+  game_process.update_steps[SCREEN_GAMEPLAY][UPDATE_PRE] = PreUpdate;
+  game_process.update_steps[SCREEN_GAMEPLAY][UPDATE_DRAW] = DrawGameplayScreen;
+  game_process.update_steps[SCREEN_GAMEPLAY][UPDATE_FRAME] = UpdateGameplayScreen;
+    
+  game_process.screen = SCREEN_TITLE;
+  game_process.state[SCREEN_GAMEPLAY] = GAME_LOADING;
   game_process.events = InitEvents();
+  game_process.init[SCREEN_TITLE]();
+}
+
+void InitGameEvents(){
+  world_data_t wdata = {0};
+  for (int i = 0; i < ROOM_INSTANCE_COUNT; i++){
+    if(room_instances[i].team_enum > -1)
+      wdata.ents[wdata.num_ents++] = room_instances[i];
+  }
+
+  for (int j = 0; j < ROOM_TILE_COUNT; j++){
+    wdata.tiles[j] = room_tiles[j];
+  }
+
   cooldown_t* loadEvent = InitCooldown(90,EVENT_GAME_PROCESS,GameReady,NULL);
   AddEvent(game_process.events,loadEvent);
+  InitWorld(wdata);
+}
+
+void GameTransitionScreen(){
+
+  print_mem_usage();
+  GameScreen current = game_process.screen;
+  GameScreen prepare = game_process.next[current];
+  if(game_process.state[current] >= GAME_FINISHED)
+    return;
+  game_process.init[prepare]();
+  game_process.state[current] = GAME_FINISHED;
+  game_process.finish[current]();
+  game_process.screen = prepare;
+  game_process.state[prepare] = GAME_LOADING;
 }
 
 void GameProcessStep(){
+  if(game_process.screen != SCREEN_GAMEPLAY)
+    return;
+
   if(game_process.events)
     StepEvents(game_process.events);
 }
 
+void GameProcessSync(bool wait){
+  if(game_process.state[game_process.screen] == GAME_FINISHED)
+    return;
+
+  for(int i = 0; i <UPDATE_DONE;i++){
+    if(i > UPDATE_DRAW && wait)
+      return;
+    game_process.update_steps[game_process.screen][i]();
+  }
+}
+
+void GameProcessEnd(){
+  UnloadEvents(game_process.events);
+  FreeWorld();
+}

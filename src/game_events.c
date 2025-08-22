@@ -44,8 +44,21 @@ cooldown_t* InitCooldown(int dur, EventType type, CooldownCallback on_end_callba
   
   return cd;
 }
+void UnloadCooldown(cooldown_t* cd){
+  if(!cd)
+    return;
 
+  *cd = (cooldown_t){0};
+}
 
+void UnloadEvents(events_t* ev){
+  for (int i = 0; i < MAX_EVENTS; i++){
+    if(!ev->cooldown_used[i])
+      continue;
+    UnloadCooldown(&ev->cooldowns[i]);
+    ev->cooldown_used[i] = false;
+  }
+}
 
 bool AddInteraction(interaction_t* inter){
   for (int i = 0; i < MAX_INTERACTIONS; i++){

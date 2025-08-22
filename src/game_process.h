@@ -3,11 +3,14 @@
 
 #include "game_types.h"
 #include "game_common.h"
-
+#include "screens.h"
 #define MAX_INTERACTIONS 256
 #define DEBUG false
 
+extern Font font;
 extern ent_t* player;
+
+typedef void (*UpdateFn)(void);
 typedef bool EntFilterFn(ent_t* e, ent_t* other); 
 static bool EntNotOnTeam(ent_t* e,ent_t* other){
   if(e->team == other->team || e->team == TEAM_ENVIROMENT)
@@ -41,19 +44,38 @@ void InteractionStep();
 //EVENTS==>
 
 typedef enum{
+  UPDATE_FRAME,//update running at full fps
+  UPDATE_DRAW,
+  UPDATE_PRE,
+  UPDATE_FIXED,
+  UPDATE_POST,
+  UPDATE_DONE
+}UpdateType;
+
+typedef enum{
+  GAME_NONE,
   GAME_LOADING,
-  GAME_READY
+  GAME_READY,
+  GAME_FINISHED,
+  GAME_OVER
 }GameState;
 
 typedef struct{
-  GameState   state;
+  GameScreen  screen;
+  GameScreen  next[SCREEN_DONE];
+  GameState   state[SCREEN_DONE];//TODO each screen needs a state
   events_t    *events;
+  UpdateFn    init[SCREEN_DONE];
+  UpdateFn    update_steps[SCREEN_DONE][UPDATE_DONE];
+  UpdateFn    finish[SCREEN_DONE];
 }game_process_t;
-extern game_process_t game_process;
 
+void InitGameEvents();
 void InitGameProcess();
 void GameProcessStep();
-
+void GameProcessSync(bool wait);
+void GameTransitionScreen();
+void GameProcessEnd();
 //===WORLD_T===>
 
 typedef struct{

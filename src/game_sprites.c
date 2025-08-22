@@ -3,6 +3,14 @@
 #include "game_math.h"
 
 sprite_sheet_data_t spritedata;
+Texture2D sprite_sheet;
+
+void InitResources(){
+    LoadrtpAtlasSprite(&spritedata);
+      Image spritesImg = LoadImage(TextFormat("resources/%s",ATLAS_RAY_SHEET_IMAGE_PATH));
+  sprite_sheet = LoadTextureFromImage(spritesImg);
+
+}
 
 sprite_t* InitSprite(const char* group, sprite_sheet_data_t* spritesheet){
  sprite_t* spr =malloc(sizeof(sprite_t));
@@ -55,9 +63,9 @@ void DrawSlice(Texture2D tex, sprite_slice_t *slice, Vector2 position,bool mirro
 bool FreeSprite(sprite_t* s){
   if(!s) return false;
 
-  if(s->slice)
+  /*if(s->slice)
     free(s->slice);
-
+*/
   free(s);
   return true;
 }

@@ -9,10 +9,8 @@
 
 #define MAX_SONGS 4
 
-extern Texture2D sprite_sheet;
-
-//forward declarations
 struct ent_s;
+void InitResources();
 
 typedef struct{
   Music music;

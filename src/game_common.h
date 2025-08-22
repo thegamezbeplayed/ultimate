@@ -27,7 +27,7 @@ typedef struct{
   CooldownCallback  on_end;
 }cooldown_t;
 cooldown_t* InitCooldown(int dur, EventType type, CooldownCallback on_end_callback, void* params);
-
+void UnloadCooldown(cooldown_t* cd);
 typedef struct{
   cooldown_t  cooldowns[MAX_EVENTS];
   bool        cooldown_used[MAX_EVENTS];
@@ -35,6 +35,7 @@ typedef struct{
 
 
 events_t* InitEvents();
+void UnloadEvents(events_t* ev);
 bool AddEvent(events_t* pool, cooldown_t* cd);
 void StepEvents(events_t* pool);
 bool CheckEvent(events_t* pool, EventType);
@@ -89,6 +90,5 @@ typedef enum{
   STAT_ACCEL,
   STAT_BLANK//sentinel
 }StatType;
-
 
 #endif

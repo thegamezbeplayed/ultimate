@@ -76,6 +76,7 @@ void EntDestroy(ent_t* e){
       e->attacks[i].hurtbox->owner = NULL;
   } 
 
+  e->control = NULL;
 }
 
 void EntFree(ent_t* e){
